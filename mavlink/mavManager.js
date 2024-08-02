@@ -81,12 +81,17 @@ class mavManager {
     this.mav.on('data', packet => {
       const clazz = REGISTRY[packet.header.msgid]
       if (!clazz) {
+        console.log('No Telemetry',clazz.name)
         // bad message - can't process here any further
         // console.log("Generic: ", packet)
         this.eventEmitter.emit('gotMessage', packet, null)
         return
       }
       const data = packet.protocol.data(packet.payload, clazz)
+     
+     if (clazz.name =='Attitude'){
+         console.log("rollvalue",data.roll)
+      }
       // console.log(packet)
 
       // set the target system/comp ID if needed
