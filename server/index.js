@@ -5,7 +5,7 @@ const bodyParser = require('body-parser')
 const pino = require('express-pino-logger')()
 const process = require('process')
 const { common } = require('node-mavlink')
-
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const networkManager = require('./networkManager')
 const aboutPage = require('./aboutInfo')
 const videoStream = require('./videostream')
@@ -905,16 +905,31 @@ app.post('/api/networkadd', [check('conSettings.ipaddresstype.value').isIn(['aut
   console.log(req.body)
 })
 
-// Handles any requests that don't match the ones above (ie pass to react app)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', '/build/index.html'))
-})
 
-const port = process.env.PORT || 3001
-http.listen(port, () => {
-  console.log('Express server is running on localhost:' + port)
-  winston.info('Express server is running on localhost:' + port)
-})
+const API_SERVICE_URL = 'http://localhost:8080'; // Flask server URL
+
+// Proxy API requests
+app.use('/api', createProxyMiddleware({
+  target: API_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api': '', // Remove /api prefix when sending requests to Flask server
+  },
+}));
+
+// Serve React app
+app.use(express.static(path.join(__dirname, '..', 'build')));
+
+// Handles any requests that don't match the ones above (ie pass to React app)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'build', 'index.html'));
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Express server is running on http://localhost:${port}`);
+  winston.info(`Express server is running on http://localhost:${port}`);
+});
 
 // Export the app instance for testing purposes
-module.exports = app
+module.exports = app;

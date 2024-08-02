@@ -87,8 +87,11 @@ class mavManager {
         return
       }
       const data = packet.protocol.data(packet.payload, clazz)
-      // console.log(packet)
+      //console.log(data)
+ 	if (clazz.name =='Attitude'){
+		console.log("thos is true",data.roll)
 
+}
       // set the target system/comp ID if needed
       // ensure it's NOT a GCS, as mavlink-router will sometimes route
       // messages from connected GCS's
@@ -123,6 +126,8 @@ class mavManager {
 
       this.statusNumRxPackets += 1
       this.timeofLastPacket = (Date.now().valueOf())
+
+
       if (packet.header.msgid === minimal.Heartbeat.MSG_ID) {
         // System status
         this.statusFWName = data.autopilot
@@ -143,7 +148,17 @@ class mavManager {
       } else if (packet.header.msgid === common.StatusText.MSG_ID) {
         // Remove whitespace
         this.statusText += data.text.trim().replace(/[^ -~]+/g, '') + '\n'
-      } else if (packet.header.msgid === common.AutopilotVersion.MSG_ID) {
+      }
+    if (packet.header.msgid === common.Altitude.MSG_ID) {
+        // Process and print altitude message
+        console.log('Altitude Message:');
+        console.log(`  Altitude (AMSL): ${data.altitude} meters`);
+        console.log(`  Altitude (Relative): ${data.relative} meters`);
+        console.log(`  Altitude (Terrain): ${data.terrain} meters`);
+        console.log(`  Altitude (Above Ground): ${data.aboveGround} meters`);
+      }
+
+ else if (packet.header.msgid === common.AutopilotVersion.MSG_ID) {
         // decode Ardupilot version
         this.fcVersion = this.decodeFlightSwVersion(data.flightSwVersion)
         console.log(this.fcVersion)
@@ -325,6 +340,7 @@ class mavManager {
 
   sendDSRequest () {
     // send datastream request
+	console.log('datastreamreques')
     const msg = new common.RequestDataStream()
     msg.targetSystem = this.targetSystem
     msg.targetComponent = this.targetComponent
