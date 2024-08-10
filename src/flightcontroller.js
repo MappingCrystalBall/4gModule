@@ -407,7 +407,7 @@ class FCPage extends basePage {
       enableDSRequest: false,
       tlogging: false,
       rollValue: null,
-      lat: 16.494389,  // Store converted latitude
+      lat: 17.494389,  // Store converted latitude
       lng: 78.142,     // Store converted longitude
     };
 
@@ -424,6 +424,17 @@ class FCPage extends basePage {
         this.setState({ rollValue: data.roll });
       }
     });
+    this.socket.on('locationData', (data) => {
+      console.log('Received location data:', data.lat, data.lng);
+      if (data && data.lat !== undefined && data.lng !== undefined) {
+        this.setState({
+          lat: data.lat,
+          lng: data.lng
+        });
+      }
+    });
+    
+    
 
     this.socket.on('disconnect', () => {
       console.log('Socket disconnected');
@@ -558,13 +569,13 @@ class FCPage extends basePage {
     const value = event.target.value;
     this.setState({ addrow: value });
   }
-  getMapUrl() {
-    const { lat, lng } = this.state;
-    const formattedLat = lat.toFixed(6);
-    const formattedLng = lng.toFixed(6);
+  // getMapUrl() {
+  //   const { lat, lng } = this.state;
+  //   const formattedLat = lat.toFixed(6);
+  //   const formattedLng = lng.toFixed(6);
   
-    return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.3261743167027!2d${formattedLng}!3d${formattedLat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcc56c394395715%3A0xa2e2d56e30d4e0cc!2sF4VR%2BMQG%2C%20Sr.%20Club%20Rd%2C%20Yeddumailaram%2C%20Telangana%20502205%2C%20India!5e0!3m2!1sen!2sus!4v1691851802333!5m2!1sen!2sus&center=${formattedLat},${formattedLng}&zoom=17`;
-  }
+  //   return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.3261743167027!2d${formattedLng}!3d${formattedLat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcc56c394395715%3A0xa2e2d56e30d4e0cc!2sF4VR%2BMQG%2C%20Sr.%20Club%20Rd%2C%20Yeddumailaram%2C%20Telangana%20502205%2C%20India!5e0!3m2!1sen!2sus!4v1691851802333!5m2!1sen!2sus&center=${formattedLat},${formattedLng}&zoom=17`;
+  // }
   
 
   renderTitle() {
@@ -738,7 +749,7 @@ class FCPage extends basePage {
     src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places">
   </script>
         <GoogleMapComponent lat={this.state.lat} lng={this.state.lng} />
-        <div style={{ width: '100%', height: '400px' }}>
+        {/* <div style={{ width: '100%', height: '400px' }}>
           <iframe
            src={this.getMapUrl()}
             width="100%"
@@ -747,7 +758,7 @@ class FCPage extends basePage {
             allowFullScreen=""
             loading="lazy"
           ></iframe>
-        </div>
+        </div> */}
       </div>
     );
   }

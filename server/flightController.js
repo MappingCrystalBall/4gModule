@@ -169,6 +169,11 @@ class FCDetails {
         console.log('Sekhar:', data.roll);
         io.emit('rollData', { roll: data.roll });
       }
+      if (data && data.lat !== undefined && data.lng !== undefined) {
+        console.log('Latitude:', data.lat, 'Longitude:', data.lng);
+        io.emit('locationData', { lat: data.lat, lng: data.lng });
+      }
+      
     });
 
 
