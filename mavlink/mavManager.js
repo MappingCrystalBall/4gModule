@@ -90,7 +90,6 @@ class mavManager {
       const data = packet.protocol.data(packet.payload, clazz)
      
      if (clazz.name =='Attitude'){
-         console.log("rollvalue",data.roll)
       }
       // console.log(packet)
 

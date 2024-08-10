@@ -29,6 +29,37 @@ function isPi () {
   return model[0] === 'raspberrypi'
 }
 
+
+// const io = require('socket.io')(3000); // Adjust the port as needed
+
+// io.on('connection', (socket) => {
+//   console.log('Client connected');
+
+//   // Simulated roll value generation
+//   // setInterval(() => {
+    
+//     // const rollValue = Math.random() * 360; // Replace with actual roll data
+//     // console.log(`Emitting roll value: ${rollValue}`); // Terminal output
+   
+//   //   socket.emit('rollData', { roll: rollValue });
+//   // }, 1000); // Adjust interval as needed
+
+//   socket.on('disconnect', () => {
+//     console.log('Client disconnected');
+//   });
+
+//   socket.on('reconnect', () => {
+//     console.log('Client reconnected');
+//   });
+// });
+
+
+
+
+
+
+
+
 class FCDetails {
   constructor (settings, winston) {
     // if the device was successfully opend and got packets
@@ -126,6 +157,21 @@ class FCDetails {
         }
       })
     }
+    this.mavManager = new mavManager(
+      this.settings.value('flightcontroller.mavversion', 2),  // Example version
+      '127.0.0.1',
+      14540,
+      this.settings.value('flightcontroller.enableDSRequest', false)
+    );
+
+    this.mavManager.eventEmitter.on('gotMessage', (packet, data) => {
+      if (data && data.roll !== undefined) {
+        console.log('Sekhar:', data.roll);
+        io.emit('rollData', { roll: data.roll });
+      }
+    });
+
+
   }
 
   validMavlinkRouter () {
@@ -240,7 +286,7 @@ class FCDetails {
     // get the system status
     if (this.m !== null) {
       return {
-        numpackets: this.m.statusNumRxPackets,
+        numpackets: 1233,
         FW: this.m.autopilotFromID(),
         vehType: this.m.vehicleFromID(),
         conStatus: this.m.conStatusStr(),
@@ -250,7 +296,7 @@ class FCDetails {
       }
     } else {
       return {
-        numpackets: 0,
+        numpackets: 123,
         FW: '',
         vehType: '',
         conStatus: 'Not connected',
@@ -354,6 +400,7 @@ class FCDetails {
       this.winston.info('Closed Router')
       this.eventEmitter.emit('stopLink')
     })
+    
 
     console.log('Opened Router')
     this.winston.info('Opened Router')
@@ -595,3 +642,11 @@ class FCDetails {
 }
 
 module.exports = FCDetails
+
+
+
+
+
+
+
+
