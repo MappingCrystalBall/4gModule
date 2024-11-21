@@ -1,0 +1,4 @@
+{
+  "verbose": false,
+  "ignore": ["settings.json", "./modules/*", "./logs/*", "./flightlogs/*"]
+}
