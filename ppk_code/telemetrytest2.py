@@ -24,8 +24,8 @@ folder_path = "/mnt"
 
 file_path ="/home/raspberry/EndUser"
 
-pin1 = 13
-pin2 = 15
+pin1 = 19
+pin2 = 16
 
 # Global variable to store logs and MAVProxy process
 log_data = {}
@@ -112,7 +112,7 @@ def list_files():
     try:
         # Initialize GPIO pins
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(pin1, GPIO.IN)
+        GPIO.setup(pin1, GPIO.IN,pull_up_down=GPIO.PUD.OFF)
         GPIO.setup(pin2, GPIO.OUT, initial=GPIO.LOW)
 
         # Check the state of pin1
