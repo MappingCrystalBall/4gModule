@@ -57,10 +57,8 @@
                 });
         });
 
-
-        
-        // Function to check if logs are available
-        function checkLogs() {
+// Function to check if logs are available
+function checkLogs() {
     fetch('/logs')
         .then(response => response.json())
         .then(data => {
@@ -72,15 +70,56 @@
                     const logEntry = document.createElement('div');
                     logEntry.innerHTML = `<strong>Log ${log_id}:</strong> ${data.logs[log_id]}`;
                     
+                    // Create a progress bar and percentage display for each log download
+                    const progressBar = document.createElement('progress');
+                    progressBar.value = 0;
+                    progressBar.max = 100;
+                    
+                    const percentageText = document.createElement('span');
+                    percentageText.innerHTML = "0%";
+                    
+                    // Append progress bar and percentage text to log entry
+                    logEntry.appendChild(progressBar);
+                    logEntry.appendChild(percentageText);
+                    
                     // Create download button for each log
                     const downloadButton = document.createElement('button');
                     downloadButton.textContent = "Download Log";
-                    downloadButton.onclick = function() {
-                        downloadLog(log_id);  // Trigger download for this log
-                    };
+
+                    // Create cancel button for each log
+                    const cancelButton = document.createElement('button');
+                    cancelButton.textContent = "Cancel";
+                    cancelButton.disabled = true; // Initially disabled, will be enabled when download starts
+                    
+                    // Add event listener for the cancel button
+                    cancelButton.onclick = function() {
+    if (abortController) {
+        abortController.abort(); // Abort the fetch request
+        cancelButton.disabled = true; // Disable cancel button
+        downloadButton.disabled = false; // Re-enable the download button
+        downloadButton.textContent = "Download Log"; // Reset the button text
+
+        // Send request to backend to stop MAVProxy log streaming
+        fetch('/cancel_log_download', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                console.log("MAVProxy log streaming stopped:", data.status);
+            })
+            .catch(err => {
+                console.error("Error stopping MAVProxy:", err);
+            });
+    }
+};
+
 
                     logEntry.appendChild(downloadButton);
+                    logEntry.appendChild(cancelButton);
                     logsContainer.appendChild(logEntry);
+
+                    // Trigger download for this log with progress
+                    downloadButton.onclick = function() {
+                        downloadLog(log_id, progressBar, percentageText, downloadButton, cancelButton);
+                    };
                 });
                 document.getElementById("loading").style.display = "none"; // Hide the loading spinner
                 document.getElementById("error-message").style.display = "none"; // Ensure error message is hidden
@@ -92,17 +131,73 @@
         .catch(err => {
             console.error("Error fetching logs:", err);
             document.getElementById("loading").style.display = "none"; // Stop loading spinner
-            // Optionally display an error message only if needed (e.g., network issues)
-            // You can also choose to ignore error handling here
+        });
+}
+
+// Function to download log by ID with periodic progress tracking (every 3 seconds)
+let abortController; // Declare abortController outside to use in cancel function
+
+function downloadLog(log_id, progressBar, percentageText, downloadButton, cancelButton) {
+    abortController = new AbortController(); // Create a new AbortController every time a download starts
+    const signal = abortController.signal; // Get the signal for cancellation
+
+    downloadButton.disabled = true;  // Disable the download button during download
+    cancelButton.disabled = false;  // Enable the cancel button
+
+    fetch(`/download_log/${log_id}`, { signal })
+        .then(response => {
+            const totalSize = parseInt(response.headers.get('Content-Length'), 10); // Get the total size of the log
+            const reader = response.body.getReader();
+            let loaded = 0;
+
+            // Set up periodic progress update every 3 seconds
+            const updateProgressInterval = setInterval(() => {
+                const percentage = Math.round((loaded / totalSize) * 100); // Calculate percentage
+                progressBar.value = percentage; // Update progress bar value
+                percentageText.innerHTML = `${percentage}%`; // Update percentage text
+            }, 3000); // Update every 3 seconds
+
+            // Function to read the stream in chunks
+            function readStream() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        clearInterval(updateProgressInterval); // Stop progress update when download is complete
+                        progressBar.value = 100; // Set progress to 100% when download is complete
+                        percentageText.innerHTML = "100%"; // Set percentage text to 100%
+                        downloadButton.textContent = "Download Complete"; // Indicate completion
+                        cancelButton.disabled = true; // Disable the cancel button after completion
+                        return;
+                    }
+
+                    loaded += value.length; // Add the length of the chunk downloaded
+                    readStream(); // Continue reading the next chunk
+                }).catch((error) => {
+                    console.error('Error reading stream:', error);
+                    clearInterval(updateProgressInterval); // Stop updating progress on error
+                    progressBar.value = 0;
+                    percentageText.innerHTML = "Error"; // Show error if reading fails
+                });
+            }
+
+            readStream(); // Start reading the stream
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') {
+                console.log("Download aborted by user");
+            } else {
+                console.error("Error downloading log:", err);
+                progressBar.value = 0; // Reset progress bar in case of error
+                percentageText.innerHTML = "Error"; // Display error message
+            }
+            downloadButton.disabled = false; // Re-enable the download button
+            cancelButton.disabled = true; // Disable the cancel button after abort or failure
         });
 }
 
 
-        // Function to download log by ID
-        function downloadLog(log_id) {
-            // Redirect to the download URL for logs
-            window.location.href = `/download_log/${log_id}`;
-        }
+
+
+
 
         // Fetch files button handler
         document.getElementById("fetchFilesButton").addEventListener("click", function () {
