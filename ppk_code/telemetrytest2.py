@@ -347,35 +347,29 @@ def stream_roll_values():
 
     except Exception as e:
         yield f"Error: {e}\n\n"
-def stream_location_values():
-    """Generator function to stream location values."""
-    try:
-        # Connect to the MAVProxy output
-        master = mavutil.mavlink_connection('udp:127.0.0.1:14450')
-        
-        # Wait for a heartbeat to ensure connection is established
-        master.wait_heartbeat()
-        print("Connected to MAVProxy telemetry stream")
-        
-        while True:
-            # Listen for GLOBAL_POSITION_INT messages
-            msg = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
-            if msg:
-                # Extract latitude, longitude, and altitude from the message
-                latitude = msg.lat / 1e7  # Convert from degrees * 1e7 to degrees
-                longitude = msg.lon / 1e7  # Convert from degrees * 1e7 to degrees
-                altitude = msg.alt / 1000.0  # Convert from mm to meters
-                
-                # Yield location data as part of the response
-                yield f"data: Latitude: {latitude:.6f}, Longitude: {longitude:.6f}, Altitude: {altitude:.2f} m\n\n"
 
-                print(f"Latitude: {latitude}, Longitude: {longitude}, Altitude: {altitude} m")
-                
-                # Small delay to avoid overwhelming the stream
-                time.sleep(0.5)
 
-    except Exception as e:
-        yield f"Error: {e}\n\n"
+@app.route('/location-data')
+def location_data():
+    """Stream location data."""
+    def stream_location():
+        try:
+            master = mavutil.mavlink_connection('udp:127.0.0.1:14450')
+            master.wait_heartbeat()
+            print("Connected to MAVProxy telemetry stream")
+            
+            while True:
+                msg = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+                if msg:
+                    lat = msg.lat / 1e7
+                    lng = msg.lon / 1e7
+                    alt = msg.alt /1000
+                    yield f"data: {{\"lat\": {lat}, \"lng\": {lng},\"alt\":{alt}}}\n\n"
+                    time.sleep(0.5)
+        except Exception as e:
+            yield f"data: {{\"error\": \"{str(e)}\"}}\n\n"
+
+    return Response(stream_location(), content_type='text/event-stream')
 
 
 @app.route('/tele', methods=['GET'])
@@ -392,8 +386,8 @@ def location():
     threading.Thread(target=starttele, daemon=True).start()
 
     # Stream location data using SSE with the correct MIME type
-    #  return render_template ("map_page.html")
-    return Response(stream_location_values(), content_type='text/event-stream')
+    return render_template ("map_page.html")
+    #return Response(stream_location_values(), content_type='text/event-stream')
 
 # Route to get the fetched logs (returns log list with unique IDs)
 @app.route('/logs', methods=['GET'])

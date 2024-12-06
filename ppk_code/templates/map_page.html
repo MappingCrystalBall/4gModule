@@ -4,57 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Location Tracker</title>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCH6T0_ockPSdbXjAGi7igtXP5GkRTnM6A&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAliEuLSdTEB9G2rzVPN7F7UtlW456-K_k&callback=initMap" async defer></script>
     <script>
         let map;
         let marker;
 
-        // Function to initialize the Google Map
+        // Initialize the map
         function initMap() {
-            // Initialize map centered at a default location (e.g., San Francisco)
             map = new google.maps.Map(document.getElementById('map'), {
-                center: { lat: 72.4067, lng: 78.477 },
+                center: { lat: 0, lng: 0 }, // Default initial center
                 zoom: 12
             });
-            // Create a marker
+
             marker = new google.maps.Marker({
+                position: { lat: 0, lng: 0 },
                 map: map,
-                position: { lat: 72.4067, lng: 78.477 },
                 title: "Current Location"
             });
-        }
 
-        // Function to handle streaming location data from the server
-        const eventSource = new EventSource("/location");
+            // Open EventSource to receive location updates
+            const eventSource = new EventSource("/location-data");
+            
+            eventSource.onmessage = function(event) {
+                try {
+                    const location = JSON.parse(event.data);
+                    const lat = location.lat;
+                    const lng = location.lng;
 
-        eventSource.onmessage = function(event) {
-            try {
-                // Parse the received data
-                const location = JSON.parse(event.data);
-                const lat = location.lat;
-                const lng = location.lng;
-
-                // Ensure the received latitude and longitude are valid before updating the map
-                if (lat !== 0 && lng !== 0) {
-                    // Update the marker position with the new location
-                    marker.setPosition(new google.maps.LatLng(lat, lng));
-                    map.setCenter(new google.maps.LatLng(lat, lng));  // Optionally, center the map to the new location
-                } else {
-                    console.log("Invalid location data received: Latitude and Longitude are 0.");
+                    if (lat && lng && lat !== 0 && lng !== 0) {
+                        const newLatLng = new google.maps.LatLng(lat, lng);
+                        marker.setPosition(newLatLng);
+                        map.setCenter(newLatLng);
+                        console.log(`Updated location: lat=${lat}, lng=${lng}`);
+                    } else {
+                        console.warn("Received invalid location data:", location);
+                    }
+                } catch (error) {
+                    console.error("Error updating map:", error);
                 }
-            } catch (error) {
-                console.error("Error parsing location data:", error);
-            }
-        };
+            };
 
-        // Error handling for EventSource connection
-        eventSource.onerror = function(event) {
-            console.error("Error with the EventSource connection:", event);
-        };
+            eventSource.onerror = function(event) {
+                console.error("EventSource error:", event);
+            };
+        }
     </script>
 </head>
 <body onload="initMap()">
-    <h1>Location Tracker</h1>
+    <h1>Real-Time Location Tracker</h1>
     <div id="map" style="height: 500px; width: 100%;"></div>
 </body>
 </html>
